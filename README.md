@@ -105,12 +105,9 @@ response = requests.post(url, headers=headers, files=files)
 print(response.json())
 ```
 
-## Contributing
-Contributions are welcome! Please open issues or submit pull requests for improvements, bug fixes, or new features.
-
 ## License
 This project is licensed under the MIT License.
 
 ## Contact
-For questions or support, please contact the maintainer at [your-email@example.com].
+For questions or support, please contact the maintainer at [moghonam08@gmail.com].
 
