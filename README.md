@@ -1,6 +1,6 @@
 # Teeth Classification System
 
-![Demo](Artifacts\screenshot.png)
+![Demo](Artifacts/screenshot.png)
 
 ## Overview
 The Teeth Classification System is a deep learning-based solution for automated diagnosis of various dental conditions from images. It leverages convolutional neural networks (CNNs) and transfer learning to classify oral diseases, providing a fast and reliable tool for dental professionals and researchers.
