@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teeth Disease Classifier</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e6f0fa 0%, #b3d4fc 100%);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            color: #1f2937;
+            padding-top: 4rem;
+        }
+        .container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            max-width: 32rem;
+            margin: 3rem;
+            transition: transform 0.3s ease;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        .side-panel {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            margin: 3rem;
+            max-width: 24rem;
+            transition: transform 0.3s ease;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .side-panel:hover {
+            transform: translateY(-5px);
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1e40af;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .file-input::-webkit-file-upload-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .file-input::-webkit-file-upload-button:hover {
+            background: #1e40af;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #1e40af 0%, #2563eb 100%);
+            transform: translateY(-2px);
+        }
+        .btn-primary:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #f3f4f6;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #1f2937;
+            text-align: left;
+            border-left: 4px solid #2563eb;
+            display: none;
+            margin-top: 1.5rem;
+        }
+        .result-error {
+            border-left-color: #dc2626;
+        }
+        .result-icon {
+            margin-right: 0.5rem;
+        }
+        .preview {
+            max-width: 100%;
+            border-radius: 0.75rem;
+            border: 2px solid #2563eb;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 1024px) {
+            body {
+                flex-direction: column;
+                align-items: center;
+            }
+            .container, .side-panel {
+                margin: 1.5rem;
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teeth Disease Classifier</h1>
+        <form id="apiKeyForm" class="mb-6">
+            <input type="password" id="apiKeyInput" class="input-field mb-3" placeholder="Enter API Key" required>
+            <button type="submit" class="btn-primary">Set API Key</button>
+        </form>
+        <form id="uploadForm" class="opacity-50 pointer-events-none">
+            <input type="file" id="imageInput" class="input-field file-input mb-3" accept="image/*" required>
+            <button type="submit" class="btn-primary">Predict</button>
+        </form>
+    </div>
+    <div class="side-panel" id="sidePanel" style="display:none; flex-direction:column; align-items:center;">
+        <img id="previewImg" class="preview" style="display:none;" alt="Image Preview"/>
+        <div id="result" class="result" style="display:none; margin-top: 1.5rem;"></div>
+    </div>
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/predict';
+        let API_KEY = '';
+
+        const apiKeyForm = document.getElementById('apiKeyForm');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const form = document.getElementById('uploadForm');
+        const imageInput = document.getElementById('imageInput');
+        const resultDiv = document.getElementById('result');
+        const previewImg = document.getElementById('previewImg');
+        const sidePanel = document.getElementById('sidePanel');
+
+        apiKeyForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            API_KEY = apiKeyInput.value.trim();
+            if (!API_KEY) {
+                apiKeyInput.classList.add('border-red-500');
+                return;
+            }
+            try {
+                const response = await fetch('http://127.0.0.1:8000/auth', {
+                    method: 'GET',
+                    headers: {
+                        'x-api-key': API_KEY,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (response.status === 401) {
+                    apiKeyInput.classList.add('border-red-500');
+                    apiKeyInput.value = '';
+                    apiKeyInput.placeholder = 'Invalid API Key';
+                    API_KEY = '';
+                    return;
+                }
+                form.classList.remove('opacity-50', 'pointer-events-none');
+                apiKeyInput.disabled = true;
+                apiKeyForm.querySelector('button').disabled = true;
+                apiKeyForm.classList.add('opacity-70');
+                apiKeyInput.classList.remove('border-red-500');
+            } catch (err) {
+                apiKeyInput.classList.add('border-red-500');
+                apiKeyInput.value = '';
+                apiKeyInput.placeholder = 'API Key Error';
+                API_KEY = '';
+            }
+        });
+
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    sidePanel.style.display = 'flex';
+                    resultDiv.style.display = 'none'; // Hide result until prediction
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewImg.style.display = 'none';
+                sidePanel.style.display = 'none';
+                resultDiv.style.display = 'none';
+            }
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!API_KEY) {
+                resultDiv.classList.add('result-error');
+                resultDiv.innerHTML = `<div class="flex items-center"><i class="fas fa-exclamation-circle text-red-600 result-icon"></i><span class="text-red-600">Please enter your API key first.</span></div>`;
+                resultDiv.style.display = 'block';
+                return;
+            }
+            const file = imageInput.files[0];
+            if (!file) return;
+            resultDiv.style.display = 'none';
+            resultDiv.textContent = '';
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': API_KEY
+                    },
+                    body: formData
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Prediction failed');
+                }
+                const data = await response.json();
+                resultDiv.classList.remove('result-error');
+                resultDiv.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-tooth text-blue-700 result-icon text-2xl"></i>
+                        <span class="text-blue-900 font-bold text-lg ml-2">Diagnosis Result</span>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-check-circle text-green-600 result-icon"></i>
+                        <span class="text-green-700 font-semibold">Prediction:</span>
+                        <span class="ml-2 font-bold text-lg">${data.class_name}</span>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-percentage text-purple-600 result-icon"></i>
+                        <span class="text-purple-700 font-semibold">Confidence:</span>
+                        <span class="ml-2 font-bold text-lg">${(data.confidence*100).toFixed(2)}%</span>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">This result is for informational purposes only. Please consult a dental professional for a full diagnosis.</div>
+                `;
+                resultDiv.style.display = 'block';
+                sidePanel.style.display = 'flex';
+            } catch (err) {
+                resultDiv.classList.add('result-error');
+                resultDiv.innerHTML = `<div class="flex items-center"><i class="fas fa-exclamation-circle text-red-600 result-icon"></i><span class="text-red-600">Error:</span><span class="ml-2">${err.message}</span></div>`;
+                resultDiv.style.display = 'block';
+                sidePanel.style.display = 'flex';
+            }
+        });
+    </script>
+</body>
+</html>
